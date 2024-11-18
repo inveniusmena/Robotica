@@ -24,7 +24,7 @@ for i in range(1,7):
 # Plot the results
 y_axis_legend=["accelaration in x", "acceleration in y", "acceleration in z", "angular velocity in roll", "angular velocity in pitch", "angular velocity in yaw"]
 
-for i in range(2,7):
+for i in range(1,7):
     plt.figure(figsize=(10, 6)) #new figure each plot
     plt.plot(time, data[:, i],label='Original Data',  )
     plt.plot(time, filtered_data_3[:, i], label='Filtered Data (window size 3)')
@@ -36,7 +36,7 @@ for i in range(2,7):
     plt.title(f'Median Filter for {y_axis_legend[i-1]} with Different Window Sizes')
 
     # Save the plot as an image file
-    plt.savefig(f'task2_column{i}.png')
+    plt.savefig(f'task2_{y_axis_legend[i-1]}.png')
     plt.show()
 
 
