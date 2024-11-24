@@ -25,6 +25,14 @@ gaussian_filtered_data = data.copy()
 for i in range(1,7):  
     gaussian_filtered_data[:, i] = gaussian_filter(data[:,i], sigma=0.8)
 
+#Export gaussian filter data
+
+# Open a file in write mode
+with open("filtered_data.txt", "w") as file:
+    for row in gaussian_filtered_data:
+        # Join each item in the row with a tab character and write to the file
+        file.write("\t".join(map(str, row)) + "\n")
+
 # Plot the results
 y_axis_legend=["Acceleration in x", "Acceleration in y", "Acceleration in z", "Angular Velocity in Roll", "Angular Velocity in Pitch", "Angular Velocity in Yaw"]
 y_axis_units = ["(mG)","(°/s)"]
