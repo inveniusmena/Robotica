@@ -23,7 +23,7 @@ for i in range(1,7):
 
 gaussian_filtered_data = data.copy()
 for i in range(1,7):  
-    gaussian_filtered_data[:, i] = gaussian_filter(data[:,i], sigma=0.8)
+    gaussian_filtered_data[:, i] = gaussian_filter(data[:,i], sigma=2)
 
 #Export gaussian filter data
 
