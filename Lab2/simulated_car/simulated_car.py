@@ -17,7 +17,7 @@ road = pygame.image.load(road_images[current_road])
 # Car attributes
 car = pygame.image.load("car.png")
 car_width, car_height = car.get_width(), car.get_height()
-car_x, car_y = 50, HEIGHT // 2 + 55  # Starting position of the car
+car_x, car_y = 50, HEIGHT // 2 + 23  # Starting position of the car
 car_angle = 0
 car_speed = 0
 
@@ -25,8 +25,8 @@ car_speed = 0
 ACCELERATION = 0.2
 MAX_SPEED = 5
 TURN_SPEED = 2
-SENSOR_RANGE = 200  # 30 meters in pixels
-SENSOR_ANGLE = 45   # Sensor cone angle (degrees)
+SENSOR_RANGE = 450  # 30 meters in pixels
+SENSOR_ANGLE = 20   # Sensor cone angle (degrees)
 
 # Open a file to save detected positions
 file = open("detected_positions.txt", "w")
@@ -90,7 +90,7 @@ while running:
     sensor_points = []
     detected_lines = []  # To store the positions of detected lines
 
-    for angle_offset in range(-SENSOR_ANGLE // 2, SENSOR_ANGLE // 2 + 1, 5):  # Steps within the cone
+    for angle_offset in range(-SENSOR_ANGLE // 2, SENSOR_ANGLE // 2 + 1, 2):  # Steps within the cone
         sensor_angle = - math.radians(car_angle - angle_offset)  # Adjust for rotation
         for distance in range(1, SENSOR_RANGE, 5):  # Incremental steps along the ray
             sensor_x = int(car_front_x + distance * math.cos(sensor_angle))
@@ -104,7 +104,7 @@ while running:
                     detected_lines.append((sensor_x, sensor_y))  # Record detected line position
                     pygame.draw.circle(screen, (255, 0, 0), (sensor_x, sensor_y), 3)  # Highlight detected point
                     # Save the position to the file
-                    file.write(f"{sensor_x} \n {sensor_y}\n")
+                    #file.write(f"{sensor_x} \t {sensor_y}\n")
 
                     break  # Stop the ray once a line is detected
 
