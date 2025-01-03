@@ -76,7 +76,6 @@ def car_dynamics(state):
     dv_u = (v_u*(b**2*M+J)*tan_phi * dphi + L**2 * cos_phi**2) / gamma * (FD+FA)
     state[4] = 0
     state[5] = 0
-    FD = max(0, min(FD, 10000))  # Clamp FD between 0 and a reasonable maximum value
     return [dx, dy, dtheta, dv_u, dphi, 0]
 
 # Main loop
