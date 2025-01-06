@@ -140,7 +140,7 @@ while running:
     detected_lines = []  # To store the positions of detected lines
 
     for angle_offset in range(-SENSOR_ANGLE // 2, SENSOR_ANGLE // 2 + 1, 2):  # Steps within the cone
-        sensor_angle = - math.radians(theta - angle_offset)  # Adjust for rotation
+        sensor_angle = - state[2]- math.radians(- angle_offset)  # Adjust for rotation
         for distance in range(1, SENSOR_RANGE, 5):  # Incremental steps along the ray
             sensor_x = int(car_front_x + distance * math.cos(sensor_angle))
             sensor_y = int(car_front_y - distance * math.sin(sensor_angle))
