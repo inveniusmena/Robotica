@@ -47,6 +47,45 @@ dt = 0.1  # Time step for simulation
 # Open a file to save detected positions
 file = open("detected_positions.txt", "w")
 
+# Function for Runge-Kutta integration
+def runge_kutta(car_x, car_y, car_angle, car_speed, steering_angle):
+    """
+    Fourth-order Runge-Kutta integration for the car's position and angle.
+    """
+    def derivatives(state, steering_angle):
+        x, y, angle = state
+        dx = car_speed * math.cos(angle)
+        dy = car_speed * math.sin(angle)
+        dtheta = (car_speed / L) * math.tan(math.radians(steering_angle))
+        return dx, dy, dtheta
+
+    # Initial state
+    state = (car_x, car_y, car_angle)
+
+    # Compute Runge-Kutta coefficients
+    k1 = derivatives(state, steering_angle)
+    k2 = derivatives(
+        (state[0] + k1[0] * dt / 2, state[1] + k1[1] * dt / 2, state[2] + k1[2] * dt / 2),
+        steering_angle,
+    )
+    k3 = derivatives(
+        (state[0] + k2[0] * dt / 2, state[1] + k2[1] * dt / 2, state[2] + k2[2] * dt / 2),
+        steering_angle,
+    )
+    k4 = derivatives(
+        (state[0] + k3[0] * dt, state[1] + k3[1] * dt, state[2] + k3[2] * dt),
+        steering_angle,
+    )
+
+    # Combine coefficients
+    dx = (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]) / 6
+    dy = (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]) / 6
+    dtheta = (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2]) / 6
+
+    # Update state
+    return state[0] + dx * dt, state[1] + dy * dt, state[2] + dtheta * dt
+
+
 # Main loop
 running = True
 while running:
@@ -54,12 +93,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
-            print(f"Key event: {event}")  # Debug print statement
 
     # Input handling for steering and speed
     keys = pygame.key.get_pressed()
-    print(f"keys: {keys}")  # Debug print statement
 
     # Steering angle input
     if keys[pygame.K_LEFT]:  # Turn left (counter-clockwise)
@@ -68,7 +104,6 @@ while running:
         steering_angle = -TURN_SPEED
     else:
         steering_angle = 0  # No steering change
-    print(f"steering_angle: {steering_angle}")  # Debug print statement
 
     # Speed control (accelerate or decelerate)
     if keys[pygame.K_UP]:  # Move forward
@@ -77,22 +112,13 @@ while running:
         car_speed = max(car_speed - ACCELERATION, -MAX_SPEED)
     else:
         car_speed *= 0.95  # Friction effect when no key is pressed
-    print(f"car_speed: {car_speed}")  # Debug print statement
 
-    # Update car angle (steering control)
-    delta = math.radians(steering_angle)  # Steering angle in radians
-
-    # Bicycle Model for car's motion
-    car_x += car_speed * math.cos(car_angle) * dt  # x position update
-    car_y += car_speed * math.sin(car_angle) * dt  # y position update
-    car_angle += (car_speed / L) * math.tan(delta) * dt  # Heading angle update
+    # Update car state using Runge-Kutta integration
+    car_x, car_y, car_angle = runge_kutta(car_x, car_y, car_angle, car_speed, steering_angle)
 
     # Ensure car_x and car_y are within valid range
     car_x = max(0, min(WIDTH, car_x))
     car_y = max(0, min(HEIGHT, car_y))
-
-    # Debug print statements for key variables
-    print(f"car_x: {car_x}, car_y: {car_y}, car_angle: {car_angle}")
 
     # Check for end of road (when car reaches the right edge of the current road)
     road_width = road.get_width()  # Get the width of the current road image
@@ -113,56 +139,8 @@ while running:
     # Draw the background (road)
     screen.blit(road, (0, 0))
 
-    # Calculate the front of the car (based on the current position and angle)
-    car_front_x = car_x + car_width / 2 * math.cos(car_angle)
-    car_front_y = car_y + car_height / 2 * math.sin(car_angle)
-
-    # Define the color of the road lines (e.g., white lines)
-    LINE_COLORS = [
-        (250, 253, 253),  # #fafdfd
-        (206, 213, 205),  # #ced5cd
-        (140, 136, 129),  # #8c8881
-        (229, 230, 229),  # #e5e6e5
-    ]
-
-    # Sensor simulation (anchored at the front of the car)
-    sensor_points = []
-    detected_lines = []  # To store the positions of detected lines
-
-    for angle_offset in range(-SENSOR_ANGLE // 2, SENSOR_ANGLE // 2 + 1,
-                              2):  # Steps within the cone
-        sensor_angle = - math.radians(
-            car_angle - angle_offset)  # Adjust for rotation
-        for distance in range(1, SENSOR_RANGE,
-                              5):  # Incremental steps along the ray
-            sensor_x = int(car_front_x + distance * math.cos(sensor_angle))
-            sensor_y = int(car_front_y - distance * math.sin(sensor_angle))
-
-            # Ensure the sensor point is within screen bounds
-            if 0 <= sensor_x < WIDTH and 0 <= sensor_y < HEIGHT:
-                # Check the color of the pixel at the sensor point
-                pixel_color = road.get_at((sensor_x, sensor_y))[
-                              :3]  # Ignore alpha channel
-                if pixel_color in LINE_COLORS:
-                    detected_lines.append(
-                        (sensor_x, sensor_y))  # Record detected line position
-                    pygame.draw.circle(screen, (255, 0, 0),
-                                       (sensor_x, sensor_y),
-                                       3)  # Highlight detected point
-                    break  # Stop the ray once a line is detected
-
-            # Draw the sensor ray
-            pygame.draw.line(screen, (0, 255, 0), (car_front_x, car_front_y),
-                             (sensor_x, sensor_y), 1)
-
-    # Draw detected lines (if any)
-    for line_pos in detected_lines:
-        pygame.draw.circle(screen, (255, 0, 0), line_pos,
-                           5)  # Red dots for detected lines
-
     # Rotate and draw the car
-    rotated_car = pygame.transform.rotate(car, -math.degrees(
-        car_angle))  # Negative angle to match screen coordinates
+    rotated_car = pygame.transform.rotate(car, -math.degrees(car_angle))
     rect = rotated_car.get_rect(center=(car_x, car_y))
     screen.blit(rotated_car, rect.topleft)
 
@@ -172,5 +150,4 @@ while running:
 
 # Close the file after quitting
 file.close()
-
 pygame.quit()
