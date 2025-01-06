@@ -1,6 +1,5 @@
 import pygame
 import math
-import numpy as np
 
 # Initialize Pygame
 pygame.init()
@@ -40,51 +39,31 @@ L = 2.5  # Wheelbase in meters (adjust this based on your car)
 ACCELERATION = 1
 MAX_SPEED = 20
 TURN_SPEED = 2
-SENSOR_RANGE = 450  # 30 meters in pixels
-SENSOR_ANGLE = 20  # Sensor cone angle (degrees)
 dt = 0.1  # Time step for simulation
+FRICTION = 0.98  # Friction coefficient (reduce speed by 2% per update)
 
 # Open a file to save detected positions
 file = open("detected_positions.txt", "w")
 
-# Function for Runge-Kutta integration
-def runge_kutta(car_x, car_y, car_angle, car_speed, steering_angle):
+# New Runge-Kutta function (provided by user)
+def runge_kutta(f, state, dt):
+    k1 = f(state)
+    k2 = f([s + dt * 0.5 * k for s, k in zip(state, k1)])
+    k3 = f([s + dt * 0.5 * k for s, k in zip(state, k2)])
+    k4 = f([s + dt * k for s, k in zip(state, k3)])
+    return [s + dt / 6 * (k1i + 2 * k2i + 2 * k3i + k4i) for s, k1i, k2i, k3i, k4i in zip(state, k1, k2, k3, k4)]
+
+# Derivatives function for the car's motion
+def car_derivatives(state):
     """
-    Fourth-order Runge-Kutta integration for the car's position and angle.
+    Compute the car's derivatives based on its current state.
+    state: [x, y, angle]
     """
-    def derivatives(state, steering_angle):
-        x, y, angle = state
-        dx = car_speed * math.cos(angle)
-        dy = car_speed * math.sin(angle)
-        dtheta = (car_speed / L) * math.tan(math.radians(steering_angle))
-        return dx, dy, dtheta
-
-    # Initial state
-    state = (car_x, car_y, car_angle)
-
-    # Compute Runge-Kutta coefficients
-    k1 = derivatives(state, steering_angle)
-    k2 = derivatives(
-        (state[0] + k1[0] * dt / 2, state[1] + k1[1] * dt / 2, state[2] + k1[2] * dt / 2),
-        steering_angle,
-    )
-    k3 = derivatives(
-        (state[0] + k2[0] * dt / 2, state[1] + k2[1] * dt / 2, state[2] + k2[2] * dt / 2),
-        steering_angle,
-    )
-    k4 = derivatives(
-        (state[0] + k3[0] * dt, state[1] + k3[1] * dt, state[2] + k3[2] * dt),
-        steering_angle,
-    )
-
-    # Combine coefficients
-    dx = (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]) / 6
-    dy = (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]) / 6
-    dtheta = (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2]) / 6
-
-    # Update state
-    return state[0] + dx * dt, state[1] + dy * dt, state[2] + dtheta * dt
-
+    x, y, angle = state
+    dx = car_speed * math.cos(angle)
+    dy = car_speed * math.sin(angle)
+    dtheta = (car_speed / L) * math.tan(math.radians(steering_angle))
+    return [dx, dy, dtheta]
 
 # Main loop
 running = True
@@ -110,11 +89,12 @@ while running:
         car_speed = min(car_speed + ACCELERATION, MAX_SPEED)
     elif keys[pygame.K_DOWN]:  # Move backward
         car_speed = max(car_speed - ACCELERATION, -MAX_SPEED)
-    else:
-        car_speed *= 0.95  # Friction effect when no key is pressed
 
-    # Update car state using Runge-Kutta integration
-    car_x, car_y, car_angle = runge_kutta(car_x, car_y, car_angle, car_speed, steering_angle)
+    # Apply road friction to car speed
+    car_speed *= FRICTION
+
+    # Update car state using the new Runge-Kutta function
+    car_x, car_y, car_angle = runge_kutta(car_derivatives, [car_x, car_y, car_angle], dt)
 
     # Ensure car_x and car_y are within valid range
     car_x = max(0, min(WIDTH, car_x))
