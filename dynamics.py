@@ -98,7 +98,7 @@ while running:
         state[5]=0
 
     if keys[pygame.K_LEFT]:
-        FD = max(FD-100, -10000)  # Decrease driving force (Newtons)
+        FD = max(FD-250, -10000)  # Decrease driving force (Newtons)
     elif keys[pygame.K_RIGHT]:
         FD = min(FD+100, 10000)  # Increase driving force (Newtons)
     else:
